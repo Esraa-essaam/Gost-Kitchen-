@@ -11,41 +11,37 @@ const UserSchema = new mongoose.Schema({
     email:{
         type:String,
         required:true,
-         minlength:15,
+         minlength:7,
          unique: true, 
-         lowercase: true
+        lowercase: true,
+         trim:true
     },
 
-    Password:{
+    password:{
         type:String,
         required:true,
         minlength:8
 
     },
-
-
-    age:{
-        type:Number,
-        required:true,
-        min:18,
-    },
-
-    isVerified: { 
-        type: Boolean, 
-        default: false 
-    },
-
+    
     role:{
      type:String,
-     enum: ["Admin","Provider","Chef","Customer"],
+     enum: ['client', 'chef', 'admin'],
      required:true,
     },
 
-    documents: [String], 
     phone: {
-        type: Number,
+        type: String,
         required: true,
-    }
+    },
+
+    address:{
+        type:String,
+        required:true,
+        
+    },
+
+
 
 },{timestamps:true});
 

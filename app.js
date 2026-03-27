@@ -2,17 +2,18 @@ require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 
-const userRouter = require("./routes/userRouter");
+const userRouter = require("./Router/userRouter");
+const kitchenRoutes = require("./routes/kitchenRoutes");
 
 const app = express()
 app.use(express.json());
 
 app.use("/api/users", userRouter);
-app.spece("/api/space",spaceRouter);
+app.use("/api/kitchens", kitchenRoutes);
 
 async function dbconnction() {
     try{
-        await mongoose.connect("mongodb//127.0.0.0.1:27017/new-app")
+        await mongoose.connect(process.env.DB_URL)
         
         console.log("connected")
     }

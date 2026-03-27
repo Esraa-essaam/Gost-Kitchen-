@@ -1,101 +1,95 @@
 const User = require("../models/User");
-const bcrypt = require("bcryptjs"); 
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { registerSchema, loginSchema } = require("../utils/userValidation");
 
-const createuser = async (req,res) =>{
-
-   //to identify the information needed
-   const{name,email,Password,age,isVerified,role,documents}=req.body
-
-   try{
-      if(!name||!email||!Password||!age||!isVerified||!role||!documents){
-         return res.status(400).json({msg:"Please provide all required fields"})}
-
-
-    const userexist = await User.findOne({email: req.body.email})
-      if (userexist) {
-         return res.status(400).json({msg:"user already found "});
-      }
-
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(Password, salt);
-         
-
-   const newuser= await User.create ({
-      ...req.body,
-      Password: hashedPassword
-   });
-
-   const token = jwt.sign(
-       { id: newuser._id, role: newuser.role },
-         process.env.JWT_SECRET, 
-         { expiresIn: "30d" }
-            );
-   
-      
-    res.status(201).json({ 
-            msg: "Success process, you created an account", 
-            token, 
-            user: { name: newuser.name, email: newuser.email } 
-        });
-
-      
-      }
-catch(error){
-    res.status(500).json({ msg: "Server Error", error: error.message });
-}
-}
-
-
-
-const updateuser = async(req,res) =>{
-   try{
-      if (req.body.Password) {
-            const salt = await bcrypt.genSalt(10);
-            req.body.Password = await bcrypt.hash(req.body.Password, salt);
+const register = async (req, res) => {
+    try {
+        
+        const { error, value } = registerSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ message: 'wrong data pls try agian' });
         }
 
-      const newdata = await User.findByIdAndUpdate(req.params.id,req.body ,{
-         new:true,
-         runvalidator:true
-      });
+       const userExists = await User.findOne({ email: value.email });
+        if (userExists) {
+            return res.status(400).json({ message: "this user already exist" });
+        }
+       
+        const hashedPassword = await bcrypt.hash(value.password, 10);
 
-      if (!newdata) return res.status(404).json({ msg: "User not found" });
-      return res.status(201).json ({msg:"you updated your data"})
-   }
-   catch(error){
-      return res.status(400).json({msg:"Wrong Data , pls try again later"}) 
+        const newUser = await User.create({
+            ...value, 
+            password: hashedPassword 
+        });
 
-   }
-} 
-const getuserdata = async (req,res) =>{
-   try{
-      const getuserdata = await User.findById(req.params.id)
-       res.status(201).json({msg:"found the user "})
-   }
-   catch(error){
-      return res.status(400).json({msg:"user not found"})
+        
+        res.status(201).json({
+            message: 'wlc. now you have an account.',
+            user: {
+                id: newUser._id,
+                name: newUser.name,
+                role: newUser.role
+            }
+        });
 
-   }
-}
+    } catch (error) {
+        res.status(500).json({ message: " server error"});
+    }
+};
 
-const deleteuser = async (req,res) =>{
-   try{
-      const deleteuser = await User.findByIdAndDelete(req.params.id)
-       res.status(201).json({msg:"you deleted the account"})
-   }
-   catch(error){
-      return res.status(400).json({msg:"error "})
 
-   }
-}
+     const login = async (req, res) => {
+    try {
+
+       const { error, value } = loginSchema.validate(req.body);
+        if (error) return res.status(400).json({ message: 'wrong data pls try agian' });
+
+        
+        const user = await User.findOne({ email: value.email });
+        if (!user) {
+            return res.status(401).json({ message: "This account not exist. try again" });
+        }
+
+        
+        const isMatch = await bcrypt.compare(value.password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "there is a mistake at your password" });
+        }
+
+        
+        const token = jwt.sign(
+            { id: user._id, role: user.role }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: "1d" } 
+        );
+
+        
+        res.status(200).json({
+           message: "sucess try",
+           token
+        });
+
+    } catch (err) {
+        res.status(500).json({ message: "server error" });
+    }
+};
+const logout = async (req, res) => {
+    try {
+        
+        res.status(200).json({ 
+            message: "Logged out successfully. See you soon!" 
+        });
+    } catch (error) {
+        res.status(500).json({ message: "Server error during logout" });
+    }
+};
 
 
 
  
 module.exports = {
-   createuser,
-   updateuser,
-   getuserdata,
-   deleteuser
+   register,
+   login,
+   logout
 }
